@@ -13,6 +13,9 @@ jobs:
         with:
           xcode-version: 'latest-stable'
 
+      - name: Install CocoaPods
+        run: pod install
+
       - name: Build Archive
         run: |
           xcodebuild -project Sample.xcodeproj \
