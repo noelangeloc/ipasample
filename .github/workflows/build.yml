@@ -1,4 +1,4 @@
-name: Build Unsigned IPA (Diawi)
+name: Build Unsigned IPA
 
 on:
   push:
@@ -6,50 +6,56 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-ios:
+  build:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Ruby (for CocoaPods)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 3.2
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
 
       - name: Install CocoaPods
-        run: sudo gem install cocoapods
-
-      - name: Install Pods
-        run: pod install
-        working-directory: .
-
-      - name: Build archive (unsigned, WITH mobileprovision)
         run: |
-          mkdir -p build
+          sudo gem install cocoapods
+          pod install
 
-          xcodebuild \
+      - name: Clean build folder
+        run: rm -rf build
+
+      - name: Archive app (UNSIGNED)
+        run: |
+          xcodebuild archive \
             -workspace Sample.xcworkspace \
             -scheme Sample \
             -configuration Release \
             -sdk iphoneos \
             -archivePath build/Sample.xcarchive \
-            archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             DEVELOPMENT_TEAM="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            SKIP_INSTALL=NO \
+            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
 
-      - name: Create unsigned IPA manually
+      - name: Inject embedded.mobileprovision (Xcode 15+ fix)
+        run: |
+          PROFILE=$(find /Applications/Xcode.app -name "*.mobileprovision" | head -n 1)
+          echo "Using mobileprovision: $PROFILE"
+
+          cp "$PROFILE" \
+            build/Sample.xcarchive/Products/Applications/Sample.app/embedded.mobileprovision
+
+      - name: Create unsigned IPA
         run: |
           cd build
           mkdir Payload
           cp -R Sample.xcarchive/Products/Applications/Sample.app Payload/
           zip -r Sample.ipa Payload
 
-      - name: Verify embedded.mobileprovision
+      - name: Verify embedded.mobileprovision exists
         run: |
           unzip -l build/Sample.ipa | grep embedded.mobileprovision
 
