@@ -33,7 +33,9 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENABLE_USER_SCRIPT_SANDBOXING=NO \
-            ASSETCATALOG_COMPILER_SKIP_APP_STORE_ICON_VALIDATION=YES
+            ASSETCATALOG_COMPILER_SKIP_APP_STORE_ICON_VALIDATION=YES \
+            SWIFT_VERSION=5.9 \
+            SWIFT_STRICT_CONCURRENCY=minima
 
       - name: Package IPA (name-agnostic)
         run: |
