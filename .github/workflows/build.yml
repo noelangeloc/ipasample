@@ -18,7 +18,7 @@ jobs:
           xcodebuild -project 'PWA Sample.xcodeproj' \
                      -scheme 'PWA Sample' \
                      -configuration Release \
-                     -archivePath $PWD/build/PWA Sample.xcarchive \
+                     -archivePath $PWD/build/'PWA Sample.xcarchive' \
                      archive \
                      CODE_SIGNING_ALLOWED=NO
 
