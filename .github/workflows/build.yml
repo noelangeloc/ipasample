@@ -1,61 +1,60 @@
-name: Build iOS IPA
+name: Build Unsigned IPA (Diawi)
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build_ios:
+  build-ios:
     runs-on: macos-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install CocoaPods
-        run: |
-          sudo gem install cocoapods
-          pod install
+      - name: Set up Ruby (for CocoaPods)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.2
 
-      - name: Build App (Unsigned)
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Install Pods
+        run: pod install
+        working-directory: .
+
+      - name: Build archive (unsigned, WITH mobileprovision)
         run: |
-          xcodebuild build \
+          mkdir -p build
+
+          xcodebuild \
             -workspace Sample.xcworkspace \
             -scheme Sample \
             -configuration Release \
-            -destination 'generic/platform=iOS' \
             -sdk iphoneos \
-            DEVELOPMENT_TEAM="" \
-            CODE_SIGN_STYLE=Manual \
+            -archivePath build/Sample.xcarchive \
+            archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO \
-            ASSETCATALOG_COMPILER_SKIP_APP_STORE_ICON_VALIDATION=YES \
-            SWIFT_VERSION=5.9 \
-            SWIFT_STRICT_CONCURRENCY=minima
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
 
-      - name: Package IPA (name-agnostic)
+      - name: Create unsigned IPA manually
         run: |
-          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData \
-            -path "*Release-iphoneos/*.app" \
-            -type d | head -n 1)
-
-          if [ -z "$APP_PATH" ]; then
-            echo "No .app found in DerivedData"
-            exit 1
-          fi
-
-          echo "Found app at: $APP_PATH"
-
-          mkdir -p Payload
-          cp -R "$APP_PATH" Payload/
+          cd build
+          mkdir Payload
+          cp -R Sample.xcarchive/Products/Applications/Sample.app Payload/
           zip -r Sample.ipa Payload
 
-      - name: Upload IPA
+      - name: Verify embedded.mobileprovision
+        run: |
+          unzip -l build/Sample.ipa | grep embedded.mobileprovision
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-ipa
-          path: Sample.ipa
+          name: Sample-Unsigned-IPA
+          path: build/Sample.ipa
