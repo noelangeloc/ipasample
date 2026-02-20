@@ -1,20 +1,25 @@
 import UIKit
 import WebKit
 
-func printView(webView: WKWebView){
+@MainActor
+func printView(webView: WKWebView) {
+
     let printController = UIPrintInteractionController.shared
 
-    let printInfo = UIPrintInfo(dictionary:nil)
-    printInfo.outputType = UIPrintInfo.OutputType.general
-    printInfo.jobName = (webView.url?.absoluteString)!
-    printInfo.duplex = UIPrintInfo.Duplex.none
-    printInfo.orientation = UIPrintInfo.Orientation.portrait
+    let printInfo = UIPrintInfo(dictionary: nil)
+    printInfo.outputType = .general
+    printInfo.jobName = webView.url?.absoluteString ?? "Print"
+    printInfo.duplex = .none
+    printInfo.orientation = .portrait
 
-    printController.printPageRenderer = UIPrintPageRenderer()
-          
-    printController.printPageRenderer?.addPrintFormatter(webView.viewPrintFormatter(), startingAtPageAt: 0)
+    let renderer = UIPrintPageRenderer()
+    renderer.addPrintFormatter(
+        webView.viewPrintFormatter(),
+        startingAtPageAt: 0
+    )
 
     printController.printInfo = printInfo
+    printController.printPageRenderer = renderer
     printController.showsNumberOfCopies = true
     printController.present(animated: true)
 }

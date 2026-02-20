@@ -1,185 +1,157 @@
 import WebKit
 import FirebaseMessaging
+import UserNotifications
+import UIKit
 
 class SubscribeMessage {
-    var topic  = ""
+    var topic = ""
     var eventValue = ""
     var unsubscribe = false
+
     struct Keys {
-        static var TOPIC = "topic"
-        static var UNSUBSCRIBE = "unsubscribe"
-        static var EVENTVALUE = "eventValue"
+        static let TOPIC = "topic"
+        static let UNSUBSCRIBE = "unsubscribe"
+        static let EVENTVALUE = "eventValue"
     }
-    convenience init(dict: Dictionary<String,Any>) {
+
+    convenience init(dict: [String: Any]) {
         self.init()
-        if let topic = dict[Keys.TOPIC] as? String {
-            self.topic = topic
-        }
-        if let unsubscribe = dict[Keys.UNSUBSCRIBE] as? Bool {
-            self.unsubscribe = unsubscribe
-        }
-        if let eventValue = dict[Keys.EVENTVALUE] as? String {
-            self.eventValue = eventValue
-        }
+        topic = dict[Keys.TOPIC] as? String ?? ""
+        unsubscribe = dict[Keys.UNSUBSCRIBE] as? Bool ?? false
+        eventValue = dict[Keys.EVENTVALUE] as? String ?? ""
     }
 }
 
-func handleSubscribeTouch(message: WKScriptMessage) {
-  // [START subscribe_topic]
-    let subscribeMessages = parseSubscribeMessage(message: message)
-    if (subscribeMessages.count > 0){
-        let _message = subscribeMessages[0]
-        if (_message.unsubscribe) {
-            Messaging.messaging().unsubscribe(fromTopic: _message.topic) { error in }
-        }
-        else {
-            Messaging.messaging().subscribe(toTopic: _message.topic) { error in }
-        }
-    }
-    
+// MARK: - Topic Subscription
 
-  // [END subscribe_topic]
+func handleSubscribeTouch(message: WKScriptMessage) {
+    let subscribeMessages = parseSubscribeMessage(message: message)
+
+    guard let msg = subscribeMessages.first else { return }
+
+    if msg.unsubscribe {
+        Messaging.messaging().unsubscribe(fromTopic: msg.topic) { _ in }
+    } else {
+        Messaging.messaging().subscribe(toTopic: msg.topic) { _ in }
+    }
 }
 
 func parseSubscribeMessage(message: WKScriptMessage) -> [SubscribeMessage] {
-    var subscribeMessages = [SubscribeMessage]()
-    if let objStr = message.body as? String {
+    var results = [SubscribeMessage]()
 
-        let data: Data = objStr.data(using: .utf8)!
-        do {
-            let jsObj = try JSONSerialization.jsonObject(with: data, options: .init(rawValue: 0))
-            if let jsonObjDict = jsObj as? Dictionary<String, Any> {
-                let subscribeMessage = SubscribeMessage(dict: jsonObjDict)
-                subscribeMessages.append(subscribeMessage)
-            } else if let jsonArr = jsObj as? [Dictionary<String, Any>] {
-                for jsonObj in jsonArr {
-                    let sMessage = SubscribeMessage(dict: jsonObj)
-                    subscribeMessages.append(sMessage)
-                }
-            }
-        } catch _ {
-            
+    guard let objStr = message.body as? String,
+          let data = objStr.data(using: .utf8) else { return results }
+
+    if let json = try? JSONSerialization.jsonObject(with: data) {
+        if let dict = json as? [String: Any] {
+            results.append(SubscribeMessage(dict: dict))
+        } else if let arr = json as? [[String: Any]] {
+            results = arr.map { SubscribeMessage(dict: $0) }
         }
     }
-    return subscribeMessages
+
+    return results
 }
 
-func returnPermissionResult(isGranted: Bool){
-    DispatchQueue.main.async(execute: {
-        if (isGranted){
-            Sample.webView.evaluateJavaScript("this.dispatchEvent(new CustomEvent('push-permission-request', { detail: 'granted' }))")
-        }
-        else {
-            Sample.webView.evaluateJavaScript("this.dispatchEvent(new CustomEvent('push-permission-request', { detail: 'denied' }))")
-        }
-    })
+// MARK: - WebView Messaging (MainActor)
+
+@MainActor
+func returnPermissionResult(isGranted: Bool) {
+    let result = isGranted ? "granted" : "denied"
+    Sample.webView.evaluateJavaScript(
+        "this.dispatchEvent(new CustomEvent('push-permission-request', { detail: '\(result)' }))"
+    )
 }
-func returnPermissionState(state: String){
-    DispatchQueue.main.async(execute: {
-        Sample.webView.evaluateJavaScript("this.dispatchEvent(new CustomEvent('push-permission-state', { detail: '\(state)' }))")
-    })
+
+@MainActor
+func returnPermissionState(state: String) {
+    Sample.webView.evaluateJavaScript(
+        "this.dispatchEvent(new CustomEvent('push-permission-state', { detail: '\(state)' }))"
+    )
 }
 
 func handlePushPermission() {
-    UNUserNotificationCenter.current().getNotificationSettings () { settings in
-            switch settings.authorizationStatus {
-            case .notDetermined:
-                let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
-                UNUserNotificationCenter.current().requestAuthorization(
-                    options: authOptions,
-                    completionHandler: { (success, error) in
-                        if error == nil {
-                            if success == true {
-                                returnPermissionResult(isGranted: true)
-                                DispatchQueue.main.async {
-                                  UIApplication.shared.registerForRemoteNotifications()
-                                }
-                            }
-                            else {
-                                returnPermissionResult(isGranted: false)
-                            }
-                        }
-                        else {
-                            returnPermissionResult(isGranted: false)
-                        }
-                    }
-                )
-            case .denied:
-                returnPermissionResult(isGranted: false)
-            case .authorized, .ephemeral, .provisional:
-                returnPermissionResult(isGranted: true)
-            @unknown default:
-                return;
-            }
-        }
-}
-func handlePushState() {
-    UNUserNotificationCenter.current().getNotificationSettings () { settings in
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
         switch settings.authorizationStatus {
         case .notDetermined:
-            returnPermissionState(state: "notDetermined")
+            let options: UNAuthorizationOptions = [.alert, .badge, .sound]
+            UNUserNotificationCenter.current().requestAuthorization(options: options) { success, _ in
+                Task { @MainActor in
+                    returnPermissionResult(isGranted: success)
+                    if success {
+                        UIApplication.shared.registerForRemoteNotifications()
+                    }
+                }
+            }
+
         case .denied:
-            returnPermissionState(state: "denied")
-        case .authorized:
-            returnPermissionState(state: "authorized")
-        case .ephemeral:
-            returnPermissionState(state: "ephemeral")
-        case .provisional:
-            returnPermissionState(state: "provisional")
+            Task { @MainActor in returnPermissionResult(isGranted: false) }
+
+        case .authorized, .ephemeral, .provisional:
+            Task { @MainActor in returnPermissionResult(isGranted: true) }
+
         @unknown default:
-            returnPermissionState(state: "unknown")
-            return;
+            break
         }
     }
 }
 
-func checkViewAndEvaluate(event: String, detail: String) {
-    if (!Sample.webView.isHidden && !Sample.webView.isLoading ) {
-        DispatchQueue.main.async(execute: {
-            Sample.webView.evaluateJavaScript("this.dispatchEvent(new CustomEvent('\(event)', { detail: \(detail) }))")
-        })
+func handlePushState() {
+    UNUserNotificationCenter.current().getNotificationSettings { settings in
+        Task { @MainActor in
+            switch settings.authorizationStatus {
+            case .notDetermined: returnPermissionState(state: "notDetermined")
+            case .denied: returnPermissionState(state: "denied")
+            case .authorized: returnPermissionState(state: "authorized")
+            case .ephemeral: returnPermissionState(state: "ephemeral")
+            case .provisional: returnPermissionState(state: "provisional")
+            @unknown default: returnPermissionState(state: "unknown")
+            }
+        }
     }
-    else {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+}
+
+@MainActor
+func checkViewAndEvaluate(event: String, detail: String) {
+    guard !Sample.webView.isHidden,
+          !Sample.webView.isLoading else {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
             checkViewAndEvaluate(event: event, detail: detail)
         }
+        return
     }
+
+    Sample.webView.evaluateJavaScript(
+        "this.dispatchEvent(new CustomEvent('\(event)', { detail: \(detail) }))"
+    )
 }
 
-func handleFCMToken(){
-    DispatchQueue.main.async(execute: {
-        Messaging.messaging().token { token, error in
-            if let error = error {
-                print("Error fetching FCM registration token: \(error)")
-                checkViewAndEvaluate(event: "push-token", detail: "ERROR GET TOKEN")
-            } else if let token = token {
-                print("FCM registration token: \(token)")
+func handleFCMToken() {
+    Messaging.messaging().token { token, _ in
+        Task { @MainActor in
+            if let token {
                 checkViewAndEvaluate(event: "push-token", detail: "'\(token)'")
+            } else {
+                checkViewAndEvaluate(event: "push-token", detail: "'ERROR'")
             }
-        }   
-    })
+        }
+    }
 }
 
-func sendPushToWebView(userInfo: [AnyHashable: Any]){
-    var json = "";
-    do {
-        let jsonData = try JSONSerialization.data(withJSONObject: userInfo)
-        json = String(data: jsonData, encoding: .utf8)!
-    } catch {
-        print("ERROR: userInfo parsing problem")
-        return
+func sendPushToWebView(userInfo: [AnyHashable: Any]) {
+    if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo),
+       let json = String(data: jsonData, encoding: .utf8) {
+        Task { @MainActor in
+            checkViewAndEvaluate(event: "push-notification", detail: json)
+        }
     }
-    checkViewAndEvaluate(event: "push-notification", detail: json)
 }
 
-func sendPushClickToWebView(userInfo: [AnyHashable: Any]){
-    var json = "";
-    do {
-        let jsonData = try JSONSerialization.data(withJSONObject: userInfo)
-        json = String(data: jsonData, encoding: .utf8)!
-    } catch {
-        print("ERROR: userInfo parsing problem")
-        return
+func sendPushClickToWebView(userInfo: [AnyHashable: Any]) {
+    if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo),
+       let json = String(data: jsonData, encoding: .utf8) {
+        Task { @MainActor in
+            checkViewAndEvaluate(event: "push-notification-click", detail: json)
+        }
     }
-    checkViewAndEvaluate(event: "push-notification-click", detail: json)
 }
