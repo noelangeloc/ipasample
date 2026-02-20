@@ -3,7 +3,7 @@ import WebKit
 import AuthenticationServices
 import SafariServices
 
-
+@MainActor
 func createWebView(container: UIView, WKSMH: WKScriptMessageHandler, WKND: WKNavigationDelegate, NSO: NSObject, VC: ViewController) -> WKWebView{
 
     let config = WKWebViewConfiguration()
@@ -74,6 +74,7 @@ func setCustomCookie(webView: WKWebView) {
 
 }
 
+@MainActor
 func calcWebviewFrame(webviewView: UIView, toolbarView: UIToolbar?) -> CGRect{
     if ((toolbarView) != nil) {
         return CGRect(x: 0, y: toolbarView!.frame.height, width: webviewView.frame.width, height: webviewView.frame.height - toolbarView!.frame.height)
