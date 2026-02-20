@@ -37,8 +37,7 @@ jobs:
             CODE_SIGNING_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             DEVELOPMENT_TEAM="" \
-            SKIP_INSTALL=NO \
-            BUILD_LIBRARY_FOR_DISTRIBUTION=YES
+            SKIP_INSTALL=NO
 
       - name: Inject embedded.mobileprovision (Xcode 15+ fix)
         run: |
