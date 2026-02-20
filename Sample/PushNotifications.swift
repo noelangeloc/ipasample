@@ -1,35 +1,12 @@
-import WebKit
-import FirebaseMessaging
-import UserNotifications
+
 import UIKit
+import WebKit
 
 @MainActor
-func returnPermissionResult(isGranted: Bool) {
-    let result = isGranted ? "granted" : "denied"
-    Sample.webView.evaluateJavaScript(
-        "this.dispatchEvent(new CustomEvent('push-permission-request', { detail: '\(result)' }))"
-    )
-}
-
-func handleFCMToken() {
-    Messaging.messaging().token { token, _ in
-        Task { @MainActor in
-            if let token {
-                Sample.webView.evaluateJavaScript(
-                    "this.dispatchEvent(new CustomEvent('push-token', { detail: '\(token)' }))"
-                )
-            }
-        }
-    }
-}
-
 func sendPushToWebView(userInfo: [AnyHashable: Any]) {
+    guard let webView = WebViewStore.webView else { return }
     if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo),
        let json = String(data: jsonData, encoding: .utf8) {
-        Task { @MainActor in
-            Sample.webView.evaluateJavaScript(
-                "this.dispatchEvent(new CustomEvent('push-notification', { detail: \(json) }))"
-            )
-        }
+        webView.evaluateJavaScript("window.onPushNotification && window.onPushNotification(\(json))")
     }
 }
