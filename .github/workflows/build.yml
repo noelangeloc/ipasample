@@ -29,7 +29,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            ENABLE_USER_SCRIPT_SANDBOXING=NO
+            ENABLE_USER_SCRIPT_SANDBOXING=NO \
+            ASSETCATALOG_COMPILER_SKIP_APP_STORE_ICON_VALIDATION=YES
 
       - name: Package IPA (name-agnostic)
         run: |
