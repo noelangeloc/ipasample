@@ -1,7 +1,7 @@
-import UIKit
 import WebKit
 import FirebaseMessaging
 import UserNotifications
+import UIKit
 
 @MainActor
 func returnPermissionResult(isGranted: Bool) {
@@ -19,6 +19,17 @@ func handleFCMToken() {
                     "this.dispatchEvent(new CustomEvent('push-token', { detail: '\(token)' }))"
                 )
             }
+        }
+    }
+}
+
+func sendPushToWebView(userInfo: [AnyHashable: Any]) {
+    if let jsonData = try? JSONSerialization.data(withJSONObject: userInfo),
+       let json = String(data: jsonData, encoding: .utf8) {
+        Task { @MainActor in
+            Sample.webView.evaluateJavaScript(
+                "this.dispatchEvent(new CustomEvent('push-notification', { detail: \(json) }))"
+            )
         }
     }
 }

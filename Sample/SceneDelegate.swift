@@ -11,7 +11,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         options connectionOptions: UIScene.ConnectionOptions
     ) {
         if let activity = connectionOptions.userActivities.first {
-            scene(scene, continue: activity)
+            self.scene(scene, continue: activity)
         }
     }
 
