@@ -28,11 +28,17 @@ jobs:
             -allowProvisioningUpdates=NO
 
       - name: Package IPA
-        run: |
-          mkdir -p Payload
-          # Updated path specifically for Xcode 16's folder structure
-          cp -R build/Build/Products/Release-iphoneos/Sample.app Payload/
-          zip -r Sample.ipa Payload
+  run: |
+    APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Sample.app" -type d | head -n 1)
+
+    if [ -z "$APP_PATH" ]; then
+      echo "Sample.app not found"
+      exit 1
+    fi
+
+    mkdir -p Payload
+    cp -R "$APP_PATH" Payload/
+    zip -r Sample.ipa Payload
           
       - name: Upload Result
         uses: actions/upload-artifact@v4
