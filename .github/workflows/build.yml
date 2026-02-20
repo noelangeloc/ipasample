@@ -15,10 +15,10 @@ jobs:
 
       - name: Build Archive
         run: |
-          xcodebuild -project 'Sample.xcodeproj' \
-                     -scheme 'Sample' \
+          xcodebuild -project Sample.xcodeproj \
+                     -scheme Sample \
                      -configuration Release \
-                     -archivePath $PWD/build/Sample.xcarchive' \
+                     -archivePath $PWD/build/Sample.xcarchive \
                      archive \
                      CODE_SIGNING_ALLOWED=NO
 
