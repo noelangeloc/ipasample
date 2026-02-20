@@ -13,13 +13,13 @@ jobs:
         with:
           xcode-version: 'latest-stable'
 
-      - name: Install CocoaPods
+     - name: Install CocoaPods
         run: pod install
 
       - name: Build Archive
         run: |
-          xcodebuild -project Sample.xcodeproj \
-                     -scheme Sample \
+          xcodebuild -workspace 'Sample.xcworkspace' \
+                     -scheme 'Sample' \
                      -configuration Release \
                      -archivePath $PWD/build/Sample.xcarchive \
                      archive \
@@ -28,7 +28,7 @@ jobs:
       - name: Export IPA (Unsigned)
         run: |
           mkdir -p Payload
-          cp -R build/PWA Sample.xcarchive/Products/Applications/Sample.app Payload/
+          cp -R build/Sample.xcarchive/Products/Applications/Sample.app Payload/
           zip -r Sample.ipa Payload
           
       - name: Upload Result
