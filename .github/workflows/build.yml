@@ -15,8 +15,8 @@ jobs:
 
       - name: Build Archive
         run: |
-          xcodebuild -project PWA Sample.xcodeproj \
-                     -scheme PWA Sample \
+          xcodebuild -project 'PWA Sample.xcodeproj' \
+                     -scheme 'PWA Sample' \
                      -configuration Release \
                      -archivePath $PWD/build/PWA Sample.xcarchive \
                      archive \
