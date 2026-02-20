@@ -2,6 +2,6 @@
 import WebKit
 
 @MainActor
-enum WebViewStore {
-    static var webView: WKWebView?
+public enum WebViewStore {
+    public static var webView: WKWebView?
 }

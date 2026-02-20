@@ -15,10 +15,4 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.window = window
         window.makeKeyAndVisible()
     }
-
-    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
-        guard let url = userActivity.webpageURL,
-              let webView = WebViewStore.webView else { return }
-        webView.evaluateJavaScript("location.href = '\(url.absoluteString)'")
-    }
 }
