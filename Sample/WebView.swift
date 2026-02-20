@@ -2,6 +2,11 @@ import UIKit
 import WebKit
 
 @MainActor
+enum WebViewStore {
+    static var webView: WKWebView?
+}
+
+@MainActor
 func createWebView(
     container: UIView,
     WKSMH: WKScriptMessageHandler,
