@@ -39,24 +39,12 @@ jobs:
             DEVELOPMENT_TEAM="" \
             SKIP_INSTALL=NO
 
-      - name: Inject embedded.mobileprovision (Xcode 15+ fix)
-        run: |
-          PROFILE=$(find /Applications/Xcode.app -name "*.mobileprovision" | head -n 1)
-          echo "Using mobileprovision: $PROFILE"
-
-          cp "$PROFILE" \
-            build/Sample.xcarchive/Products/Applications/Sample.app/embedded.mobileprovision
-
       - name: Create unsigned IPA
         run: |
           cd build
           mkdir Payload
           cp -R Sample.xcarchive/Products/Applications/Sample.app Payload/
           zip -r Sample.ipa Payload
-
-      - name: Verify embedded.mobileprovision exists
-        run: |
-          unzip -l build/Sample.ipa | grep embedded.mobileprovision
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
