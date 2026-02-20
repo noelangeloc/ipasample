@@ -6,18 +6,12 @@ import UserNotifications
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    var window: UIWindow?
-
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-
-        // FirebaseApp.configure()
-
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
-
         return true
     }
 
@@ -36,16 +30,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         sendPushToWebView(userInfo: userInfo)
         completionHandler(.newData)
     }
-
-    func application(
-        _ application: UIApplication,
-        didFailToRegisterForRemoteNotificationsWithError error: Error
-    ) {
-        print(error.localizedDescription)
-    }
 }
 
-// MARK: - UNUserNotificationCenterDelegate
 extension AppDelegate: UNUserNotificationCenterDelegate {
 
     nonisolated func userNotificationCenter(
@@ -65,7 +51,6 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     }
 }
 
-// MARK: - MessagingDelegate
 extension AppDelegate: MessagingDelegate {
 
     nonisolated func messaging(
